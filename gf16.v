@@ -46,7 +46,6 @@ reg[3:0]address1;
 reg[5:0]F[15:0][2:0][255:0];/////BASED ON RW AND CW
 reg[5:0]B[15:0][2:0][255:0];
 
-
 reg[5:0]F_[15:0][2:0][255:0];/////BASED ON RW AND CW
 reg[5:0]B_[15:0][2:0][255:0];
 
@@ -55,15 +54,23 @@ reg alphaCSR[255:0][383:0];
 reg[1:0]betaCSR[255:0][383:0];
 //(* keep="true" *)reg[95:0] GAMMA[2:0];
 reg reset1,reset_a;
-reg enable,enable1,enable2,enable3,enable4,enable5,enable_copy,enable6,enable7,enable8,enable6_copy,enable7_copy,enable8_copy,enable10,enable9;
+reg enable,enable1,enable2,enable3,enable4,enable5,enable_copy,enable6,enable7,enable8,enable6_copy,enable7_copy,enable8_copy,enable10,enable9,enable11,enable12,enable13,enable14,enable15;
 wire[12:0]count,bramid,reg_read_col,reg_read_a,bram_a,a_read_FB,a_write_FB,count_copy,a_read_alphaset,a_write_alphaset,FB_init2_write,a_read_alphaset_copy,a_write_alphaset_copy,FB_init2_write_copy;
 wire[13:0]f_count,b_count;
 wire [12:0] beta_count,beta_count1;
+wire [12:0]apostcount,sumcount,subcount,compcount,compcount1;
 
 reg[3:0]MUL_VAL[15:0][255:0],MUL_VAL1[15:0][255:0],ADD_RES[15:0][255:0],ADD_RES1[15:0][255:0];
 reg[5:0]max_B[255:0][15:0],min_B[255:0][15:0],max_F[255:0][15:0],min_F[255:0][15:0];
 reg[5:0]ALPHASET_A[15:0][255:0],ALPHASET_B[15:0][255:0];
 
+
+reg[6:0]temp1[15:0][383:0];
+reg[6:0]temp2[15:0][383:0];
+reg[5:0]Gamma[15:0][383:0];
+reg[3:0]minindex[383:0];
+reg[3:0]minindex1[383:0];
+reg[5:0]mess;
 
 counter_block gammain_counter(reset,clk,enable,count);
 counter_block gammain_counter_copy(reset,clk,enable_copy,count_copy);
@@ -80,6 +87,11 @@ counter_block counter11(reset,clk,enable7_copy,a_write_alphaset_copy);
 counter_block counter12(reset,clk,enable8_copy,FB_init2_write_copy);
 counter_block counter13(reset,clk,enable9,beta_count);
 counter_block counter14(reset,clk,enable10,beta_count1);
+counter_block counter15(reset,clk,enable11,apostcount);
+counter_block counter16(reset,clk,enable12,sumcount);
+counter_block counter17(reset,clk,enable13,subcount);
+counter_block counter18(reset,clk,enable14,compcount1);
+counter_block counter19(reset,clk,enable15,compcount);
                               /*  counter_block1 counter5(reset,clk,enable4,f_count);
                                counter_block1 counter6(reset,clk,enable5,b_count); */
 
@@ -198,7 +210,14 @@ counter_block counter14(reset,clk,enable10,beta_count1);
 `define BRAM_OUT_WAIT3 6'd27
 `define BETA_OUT 6'd28
 `define ADD_CHECK 6'D29
-`define END 6'd30
+`define processingstate7 6'd30
+`define alphapost 6'd31
+`define wait 6'd33
+`define wait1 6'd34
+`define subtractor 6'd37
+`define comparator 6'd35
+`define comparator1 6'd36
+`define END 6'd32
 
 
 
@@ -818,11 +837,162 @@ end
 end
  */
 
+//THIS IS FOR THE COUNTER REQD FOR apostcount
+always@(state or reset)
+begin
+if(reset) enable11=1'b0;
+else
+begin
+case(state)
+`RESET_STATE: begin
+enable11=1'b0;
+end
+`GAMMAIN0: begin
+enable11=1'b0;
+end
+`GAMMAIN1: begin
+enable11=1'b0;
+end
 
+`processingstate7: begin
+enable11=1'b1;
+end
+`alphapost: begin
+enable11=1'b0;
+end
+
+default: begin
+enable11=1'b0;
+end
+
+endcase
+end
+end
+
+
+//THIS IS FOR THE COUNTER REQD FOR sumcount
+always@(state or reset)
+begin
+if(reset) enable12=1'b0;
+else
+begin
+case(state)
+`RESET_STATE: begin
+enable12=1'b0;
+end
+`GAMMAIN0: begin
+enable12=1'b0;
+end
+`GAMMAIN1: begin
+enable12=1'b0;
+end
+
+`processingstate7: begin
+enable12=1'b0;
+end
+
+`alphapost: begin
+enable12=1'b1;
+end
+
+default: begin
+enable12=1'b0;
+end
+
+endcase
+end
+end
+
+//THIS IS FOR THE COUNTER REQD FOR compcount
+always@(state or reset)
+begin
+if(reset) enable15=1'b0;
+else
+begin
+case(state)
+`RESET_STATE: begin
+enable15=1'b0;
+end
+`GAMMAIN0: begin
+enable15=1'b0;
+end
+`GAMMAIN1: begin
+enable15=1'b0;
+end
+
+`comparator: begin
+enable15=1'b1;
+end
+
+default: begin
+enable15=1'b0;
+end
+
+endcase
+end
+end
+
+//THIS IS FOR THE COUNTER REQD FOR compcount1
+always@(state or reset)
+begin
+if(reset) enable14=1'b0;
+else
+begin
+case(state)
+`RESET_STATE: begin
+enable14=1'b0;
+end
+`GAMMAIN0: begin
+enable14=1'b0;
+end
+`GAMMAIN1: begin
+enable14=1'b0;
+end
+
+`comparator1: begin
+enable14=1'b1;
+end
+
+default: begin
+enable14=1'b0;
+end
+
+endcase
+end
+end
+
+//THIS IS FOR THE COUNTER REQD FOR subcount
+always@(state or reset)
+begin
+if(reset) enable13=1'b0;
+else
+begin
+case(state)
+`RESET_STATE: begin
+enable13=1'b0;
+end
+`GAMMAIN0: begin
+enable13=1'b0;
+end
+`GAMMAIN1: begin
+enable13=1'b0;
+end
+
+`subtractor: begin
+enable13=1'b1;
+end
+
+default: begin
+enable13=1'b0;
+end
+
+endcase
+end
+end
 
 
 // ALWAYS BLOCK TO DETERMINE NEXT_STATE
-always@(state,reset,count,a_write_FB,/* f_count,b_count, */a_write_alphaset,FB_init2_write,a_write_alphaset_copy,FB_init2_write_copy,beta_count,beta_count1,bramid,bram_a)
+always@(state,reset,count,a_write_FB,/* f_count,b_count, */a_write_alphaset,FB_init2_write,a_write_alphaset_copy,FB_init2_write_copy,beta_count,beta_count1,bramid,bram_a,apostcount,sumcount,subcount,compcount,compcount1)
 begin
 if(reset)
 begin
@@ -853,7 +1023,17 @@ case(state)
 `FB_init21_copy: begin next_state=`processing_state4; end
 `processing_state4: begin  next_state=`BETA_ASSIGN; end
 `BETA_ASSIGN: begin if(beta_count[3:0]==4'd15) next_state=`BETA_ASSIGN1; else begin next_state=`BETA_ASSIGN; end  end
-`BETA_ASSIGN1: begin if(beta_count1[3:0]==4'd15) next_state=`BRAM_OUT; else begin next_state=`BETA_ASSIGN1; end  end
+`BETA_ASSIGN1: begin if(beta_count1[3:0]==4'd15) next_state=`processingstate7; else begin next_state=`BETA_ASSIGN1; end  end
+`processingstate7: begin next_state=`wait; end
+`alphapost: begin if(sumcount[3:0]==4'd15)next_state=`comparator; else next_state = `processingstate7; end
+`wait:begin next_state=`wait1; end
+`wait1:begin next_state=`alphapost; end
+
+`comparator: begin if(compcount[3:0]==4'd15)next_state=`comparator1; else next_state = `comparator; end
+`comparator1: begin if(compcount1[3:0]==4'd15)next_state=`subtractor; else next_state = `comparator1; end
+`subtractor: begin if(subcount[3:0]==4'd15)next_state=`BRAM_OUT; else next_state = `subtractor; end
+
+
 `BRAM_OUT: begin next_state=`BRAM_OUT_WAIT0;   end
 `BRAM_OUT_WAIT0: begin  next_state=`BRAM_OUT_WAIT1;  end
 `BRAM_OUT_WAIT1: begin  next_state=`BRAM_OUT_WAIT2;  end
@@ -925,13 +1105,88 @@ end
 
 end
 
+
 end
+
+
+// ALWAYS BLOCK TO ASSIGN TEMP1
+always@(posedge clk,posedge reset) begin
+if(reset) begin
+for(loop_var=0;loop_var<16;loop_var=loop_var+1) begin
+for(loop_var1=0;loop_var1<384;loop_var1=loop_var1+1) begin
+temp1[loop_var][loop_var1]=0;
+end
+end
+
+end
+else begin
+
+
+for(loop_var=0;loop_var<16;loop_var=loop_var+1) begin
+for(loop_var1=0;loop_var1<384;loop_var1=loop_var1+1) begin
+temp1[loop_var][loop_var1]=temp1[loop_var][loop_var1];
+end
+end
+
+
+end
+
+
+end
+
+
+// ALWAYS BLOCK TO ASSIGN TEMP2
+always@(posedge clk,posedge reset) begin
+if(reset) begin
+for(loop_var=0;loop_var<16;loop_var=loop_var+1) begin
+for(loop_var1=0;loop_var1<384;loop_var1=loop_var1+1) begin
+temp2[loop_var][loop_var1]=0;
+end
+end
+
+end
+else begin
+
+
+for(loop_var=0;loop_var<16;loop_var=loop_var+1) begin
+for(loop_var1=0;loop_var1<384;loop_var1=loop_var1+1) begin
+temp2[loop_var][loop_var1]=temp2[loop_var][loop_var1];
+end
+end
+
+
+end
+
+
+end
+
+//ALWAYS BLOCK TO ASSIGN MININDEX
+always@(posedge clk,posedge reset) begin
+if(reset) begin
+for(loop_var1=0;loop_var1<384;loop_var1=loop_var1+1) begin
+minindex[loop_var1]=0;
+minindex1[loop_var1]=0;
+end
+end
+
+
+else  begin
+for(loop_var1=0;loop_var1<384;loop_var1=loop_var1+1) begin
+minindex[loop_var1]=minindex[loop_var1];
+minindex1[loop_var1]=minindex1[loop_var1];
+end
+end
+
+
+end
+
+
 
 
 
 // FUNCTIONALITY FOR EACH STATE
 always@(state,reset,bramid,count,count_copy,GAM,row_col[0][ 0 ],a_read_FB,bram_a,a_write_FB,a_read_alphaset,a_write_alphaset,FB_init2_write,beta_count,beta_count1,
-a_read_alphaset_copy,a_write_alphaset_copy,FB_init2_write_copy,
+a_read_alphaset_copy,a_write_alphaset_copy,FB_init2_write_copy,apostcount,sumcount,subcount,compcount,compcount1,
    row_col[1][ 0 ],
    row_col[0][ 1 ],
    row_col[1][ 1 ],
@@ -127729,6 +127984,7 @@ for(loop_var=0;loop_var<768;loop_var=loop_var+1) begin
 ena[loop_var]=1'b1;
 end
 end
+
 `GAMMAIN0: begin/// address is bram id and count/address1 is location within the bram.
 col_state[9:0]={1'b0,count[12:4]};
 row_state={1'b0,row_col[0][col_state]};
@@ -127737,15 +127993,15 @@ weA[address]=1'b1;
 address1=count[3:0];
 addrA[address]=address1;
 dinA[address]=GAM;
-
+Gamma[address1][col_state]=GAM;
 row_state1={1'b0,row_col[1][col_state]};
 weA[{9'd0,alphaCSR[row_state1][col_state]}+((col_state)*10'd2)]=1'b1;
 addrA[{9'd0,alphaCSR[row_state1][col_state]}+((col_state)*10'd2)]=address1;
 dinA[{9'd0,alphaCSR[row_state1][col_state]}+((col_state)*10'd2)]=GAM;
-
 end
 
-`GAMMAIN1: begin/// address is bram id and count/address1 is location within the bram.
+`GAMMAIN1:
+begin/// address is bram id and count/address1 is location within the bram.
 col_state[9:0]={1'b0,count[12:4]};
 row_state={1'b0,row_col[0][col_state]};
 address={9'd0,alphaCSR[row_state][col_state]}+((col_state)*10'd2);
@@ -127753,11 +128009,17 @@ weA[address]=1'b1;
 address1=count[3:0];
 addrA[address]=address1;
 dinA[address]=GAM;
+if(address1==4'd15)
+begin Gamma[0][col_state+1]=GAM;
+end
+else
+begin
+Gamma[address1+1][col_state]=GAM;
+end
 row_state1={1'b0,row_col[1][col_state]};
 weA[{9'd0,alphaCSR[row_state1][col_state]}+((col_state)*10'd2)]=1'b1;
 addrA[{9'd0,alphaCSR[row_state1][col_state]}+((col_state)*10'd2)]=address1;
 dinA[{9'd0,alphaCSR[row_state1][col_state]}+((col_state)*10'd2)]=GAM;
-
 if(count_copy[3:0]==4'b1111)
 begin
 col_state_copy[9:0]={1'b0,count_copy[12:4]};
@@ -127768,12 +128030,8 @@ ena[{9'd0,alphaCSR[row_state_copy1][col_state_copy]}+((col_state_copy)*10'd2)]=1
 end
 else
 begin
-
 end
-
-
 end
-
 
 
 `processing_state0: begin
@@ -128236,6 +128494,84 @@ weB[(row_state*10'd3)+10'd1]=1;
 end
 end
 
+
+`processingstate7 : begin
+
+for(col_state=0;col_state<384; col_state=col_state+1)begin
+
+row_state = row_col[1][col_state]; //index1
+row_state1 = row_col[0][col_state]; //index0
+weB[(betaCSR[row_state][col_state] + row_state*10'd3)]=0; //ind1
+weB1[(betaCSR[row_state1][col_state] + row_state1*10'd3)]=0; //ind0
+addrB[(betaCSR[row_state][col_state] + row_state*10'd3)] = apostcount[3:0]; //ind1
+addrB1[(betaCSR[row_state1][col_state] + row_state1*10'd3)]=apostcount[3:0]; //ind0
+end
+
+end
+
+
+`alphapost : begin
+for(col_state=0;col_state<384; col_state=col_state+1)begin
+
+row_state = row_col[1][col_state]; //index1
+row_state1 = row_col[0][col_state]; //index0
+//weB[(betaCSR[row_state][col_state] + row_state*10'd3)]=0; //ind1
+//weB1[(betaCSR[row_state1][col_state] + row_state1*10'd3)]=0; //ind0
+temp1[sumcount[3:0]][col_state] = doutB1[betaCSR[row_state1][col_state] + (row_state1*10'd3)] + Gamma[sumcount[3:0]][col_state];//indv0 tempa =1
+
+temp2[sumcount[3:0]][col_state] = doutB[betaCSR[row_state][col_state] + (row_state*10'd3)] + Gamma[sumcount[3:0]][col_state];//indv1 m=2
+
+
+end
+
+end
+
+
+`wait : begin
+end
+
+`wait1   :begin
+end
+
+`comparator : begin
+
+for(col_state=0;col_state<384;col_state=col_state+1)
+begin
+
+    if(temp1[compcount[3:0]][col_state]<temp1[minindex[col_state]][col_state])
+                minindex[col_state]=compcount[3:0];//index0
+end
+
+end
+
+`comparator1   :begin
+for(col_state=0;col_state<384;col_state=col_state+1)
+
+
+begin
+
+    if(temp2[compcount1[3:0]][col_state]<temp2[minindex1[col_state]][col_state])
+                minindex1[col_state]=compcount1[3:0];//index0
+end
+
+end
+
+
+`subtractor : begin
+for(col_state=0;col_state<384;col_state=col_state+1)
+
+
+begin//m=2,a=1
+row_state = row_col[1][col_state]; //i1
+row_state1 = row_col[0][col_state]; //i0
+addrA[alphaCSR[row_state][col_state]+(col_state*11'd2)] = subcount[3:0];
+addrA1[alphaCSR[row_state1][col_state]+(col_state*11'd2)] = subcount[3:0];
+weA[alphaCSR[row_state][col_state]+(col_state*11'd2)]=1;
+weA1[alphaCSR[row_state1][col_state]+(col_state*11'd2)]=1;
+dinA1[alphaCSR[row_state1][col_state]+(col_state*11'd2)]=temp2[subcount[3:0]][col_state]-temp2[minindex1[col_state]][col_state];
+dinA[alphaCSR[row_state][col_state]+(col_state*11'd2)]=temp1[subcount[3:0]][col_state]-temp1[minindex[col_state]][col_state];
+end
+end
 
 `BRAM_OUT: begin
 
@@ -131432,10 +131768,781 @@ H[255][128]=8;
 H[255][255]=1;
 H[255][324]=1;
 
+betaCSR[0][0]=0;
+betaCSR[0][1]=1;
+betaCSR[0][256]=2;
+betaCSR[1][1]=0;
+betaCSR[1][2]=1;
+betaCSR[1][257]=2;
+betaCSR[2][2]=0;
+betaCSR[2][3]=1;
+betaCSR[2][258]=2;
+betaCSR[3][3]=0;
+betaCSR[3][4]=1;
+betaCSR[3][259]=2;
+betaCSR[4][4]=0;
+betaCSR[4][5]=1;
+betaCSR[4][260]=2;
+betaCSR[5][5]=0;
+betaCSR[5][6]=1;
+betaCSR[5][261]=2;
+betaCSR[6][6]=0;
+betaCSR[6][7]=1;
+betaCSR[6][262]=2;
+betaCSR[7][7]=0;
+betaCSR[7][8]=1;
+betaCSR[7][263]=2;
+betaCSR[8][8]=0;
+betaCSR[8][9]=1;
+betaCSR[8][264]=2;
+betaCSR[9][9]=0;
+betaCSR[9][10]=1;
+betaCSR[9][265]=2;
+betaCSR[10][10]=0;
+betaCSR[10][11]=1;
+betaCSR[10][266]=2;
+betaCSR[11][11]=0;
+betaCSR[11][12]=1;
+betaCSR[11][267]=2;
+betaCSR[12][12]=0;
+betaCSR[12][13]=1;
+betaCSR[12][268]=2;
+betaCSR[13][13]=0;
+betaCSR[13][14]=1;
+betaCSR[13][269]=2;
+betaCSR[14][14]=0;
+betaCSR[14][15]=1;
+betaCSR[14][270]=2;
+betaCSR[15][15]=0;
+betaCSR[15][16]=1;
+betaCSR[15][271]=2;
+betaCSR[16][16]=0;
+betaCSR[16][17]=1;
+betaCSR[16][272]=2;
+betaCSR[17][17]=0;
+betaCSR[17][18]=1;
+betaCSR[17][273]=2;
+betaCSR[18][18]=0;
+betaCSR[18][19]=1;
+betaCSR[18][274]=2;
+betaCSR[19][19]=0;
+betaCSR[19][20]=1;
+betaCSR[19][275]=2;
+betaCSR[20][20]=0;
+betaCSR[20][21]=1;
+betaCSR[20][276]=2;
+betaCSR[21][21]=0;
+betaCSR[21][22]=1;
+betaCSR[21][277]=2;
+betaCSR[22][22]=0;
+betaCSR[22][23]=1;
+betaCSR[22][278]=2;
+betaCSR[23][23]=0;
+betaCSR[23][24]=1;
+betaCSR[23][279]=2;
+betaCSR[24][24]=0;
+betaCSR[24][25]=1;
+betaCSR[24][280]=2;
+betaCSR[25][25]=0;
+betaCSR[25][26]=1;
+betaCSR[25][281]=2;
+betaCSR[26][26]=0;
+betaCSR[26][27]=1;
+betaCSR[26][282]=2;
+betaCSR[27][27]=0;
+betaCSR[27][28]=1;
+betaCSR[27][283]=2;
+betaCSR[28][28]=0;
+betaCSR[28][29]=1;
+betaCSR[28][284]=2;
+betaCSR[29][29]=0;
+betaCSR[29][30]=1;
+betaCSR[29][285]=2;
+betaCSR[30][30]=0;
+betaCSR[30][31]=1;
+betaCSR[30][286]=2;
+betaCSR[31][31]=0;
+betaCSR[31][32]=1;
+betaCSR[31][287]=2;
+betaCSR[32][32]=0;
+betaCSR[32][33]=1;
+betaCSR[32][288]=2;
+betaCSR[33][33]=0;
+betaCSR[33][34]=1;
+betaCSR[33][289]=2;
+betaCSR[34][34]=0;
+betaCSR[34][35]=1;
+betaCSR[34][290]=2;
+betaCSR[35][35]=0;
+betaCSR[35][36]=1;
+betaCSR[35][291]=2;
+betaCSR[36][36]=0;
+betaCSR[36][37]=1;
+betaCSR[36][292]=2;
+betaCSR[37][37]=0;
+betaCSR[37][38]=1;
+betaCSR[37][293]=2;
+betaCSR[38][38]=0;
+betaCSR[38][39]=1;
+betaCSR[38][294]=2;
+betaCSR[39][39]=0;
+betaCSR[39][40]=1;
+betaCSR[39][295]=2;
+betaCSR[40][40]=0;
+betaCSR[40][41]=1;
+betaCSR[40][296]=2;
+betaCSR[41][41]=0;
+betaCSR[41][42]=1;
+betaCSR[41][297]=2;
+betaCSR[42][42]=0;
+betaCSR[42][43]=1;
+betaCSR[42][298]=2;
+betaCSR[43][43]=0;
+betaCSR[43][44]=1;
+betaCSR[43][299]=2;
+betaCSR[44][44]=0;
+betaCSR[44][45]=1;
+betaCSR[44][300]=2;
+betaCSR[45][45]=0;
+betaCSR[45][46]=1;
+betaCSR[45][301]=2;
+betaCSR[46][46]=0;
+betaCSR[46][47]=1;
+betaCSR[46][302]=2;
+betaCSR[47][47]=0;
+betaCSR[47][48]=1;
+betaCSR[47][303]=2;
+betaCSR[48][48]=0;
+betaCSR[48][49]=1;
+betaCSR[48][304]=2;
+betaCSR[49][49]=0;
+betaCSR[49][50]=1;
+betaCSR[49][305]=2;
+betaCSR[50][50]=0;
+betaCSR[50][51]=1;
+betaCSR[50][306]=2;
+betaCSR[51][51]=0;
+betaCSR[51][52]=1;
+betaCSR[51][307]=2;
+betaCSR[52][52]=0;
+betaCSR[52][53]=1;
+betaCSR[52][308]=2;
+betaCSR[53][53]=0;
+betaCSR[53][54]=1;
+betaCSR[53][309]=2;
+betaCSR[54][54]=0;
+betaCSR[54][55]=1;
+betaCSR[54][310]=2;
+betaCSR[55][55]=0;
+betaCSR[55][56]=1;
+betaCSR[55][311]=2;
+betaCSR[56][56]=0;
+betaCSR[56][57]=1;
+betaCSR[56][312]=2;
+betaCSR[57][57]=0;
+betaCSR[57][58]=1;
+betaCSR[57][313]=2;
+betaCSR[58][58]=0;
+betaCSR[58][59]=1;
+betaCSR[58][314]=2;
+betaCSR[59][59]=0;
+betaCSR[59][60]=1;
+betaCSR[59][315]=2;
+betaCSR[60][60]=0;
+betaCSR[60][61]=1;
+betaCSR[60][316]=2;
+betaCSR[61][61]=0;
+betaCSR[61][62]=1;
+betaCSR[61][317]=2;
+betaCSR[62][62]=0;
+betaCSR[62][63]=1;
+betaCSR[62][318]=2;
+betaCSR[63][63]=0;
+betaCSR[63][64]=1;
+betaCSR[63][319]=2;
+betaCSR[64][64]=0;
+betaCSR[64][65]=1;
+betaCSR[64][320]=2;
+betaCSR[65][65]=0;
+betaCSR[65][66]=1;
+betaCSR[65][321]=2;
+betaCSR[66][66]=0;
+betaCSR[66][67]=1;
+betaCSR[66][322]=2;
+betaCSR[67][67]=0;
+betaCSR[67][68]=1;
+betaCSR[67][323]=2;
+betaCSR[68][68]=0;
+betaCSR[68][69]=1;
+betaCSR[68][324]=2;
+betaCSR[69][69]=0;
+betaCSR[69][70]=1;
+betaCSR[69][325]=2;
+betaCSR[70][70]=0;
+betaCSR[70][71]=1;
+betaCSR[70][326]=2;
+betaCSR[71][71]=0;
+betaCSR[71][72]=1;
+betaCSR[71][327]=2;
+betaCSR[72][72]=0;
+betaCSR[72][73]=1;
+betaCSR[72][328]=2;
+betaCSR[73][73]=0;
+betaCSR[73][74]=1;
+betaCSR[73][329]=2;
+betaCSR[74][74]=0;
+betaCSR[74][75]=1;
+betaCSR[74][330]=2;
+betaCSR[75][75]=0;
+betaCSR[75][76]=1;
+betaCSR[75][331]=2;
+betaCSR[76][76]=0;
+betaCSR[76][77]=1;
+betaCSR[76][332]=2;
+betaCSR[77][77]=0;
+betaCSR[77][78]=1;
+betaCSR[77][333]=2;
+betaCSR[78][78]=0;
+betaCSR[78][79]=1;
+betaCSR[78][334]=2;
+betaCSR[79][79]=0;
+betaCSR[79][80]=1;
+betaCSR[79][335]=2;
+betaCSR[80][80]=0;
+betaCSR[80][81]=1;
+betaCSR[80][336]=2;
+betaCSR[81][81]=0;
+betaCSR[81][82]=1;
+betaCSR[81][337]=2;
+betaCSR[82][82]=0;
+betaCSR[82][83]=1;
+betaCSR[82][338]=2;
+betaCSR[83][83]=0;
+betaCSR[83][84]=1;
+betaCSR[83][339]=2;
+betaCSR[84][84]=0;
+betaCSR[84][85]=1;
+betaCSR[84][340]=2;
+betaCSR[85][85]=0;
+betaCSR[85][86]=1;
+betaCSR[85][341]=2;
+betaCSR[86][86]=0;
+betaCSR[86][87]=1;
+betaCSR[86][342]=2;
+betaCSR[87][87]=0;
+betaCSR[87][88]=1;
+betaCSR[87][343]=2;
+betaCSR[88][88]=0;
+betaCSR[88][89]=1;
+betaCSR[88][344]=2;
+betaCSR[89][89]=0;
+betaCSR[89][90]=1;
+betaCSR[89][345]=2;
+betaCSR[90][90]=0;
+betaCSR[90][91]=1;
+betaCSR[90][346]=2;
+betaCSR[91][91]=0;
+betaCSR[91][92]=1;
+betaCSR[91][347]=2;
+betaCSR[92][92]=0;
+betaCSR[92][93]=1;
+betaCSR[92][348]=2;
+betaCSR[93][93]=0;
+betaCSR[93][94]=1;
+betaCSR[93][349]=2;
+betaCSR[94][94]=0;
+betaCSR[94][95]=1;
+betaCSR[94][350]=2;
+betaCSR[95][95]=0;
+betaCSR[95][96]=1;
+betaCSR[95][351]=2;
+betaCSR[96][96]=0;
+betaCSR[96][97]=1;
+betaCSR[96][352]=2;
+betaCSR[97][97]=0;
+betaCSR[97][98]=1;
+betaCSR[97][353]=2;
+betaCSR[98][98]=0;
+betaCSR[98][99]=1;
+betaCSR[98][354]=2;
+betaCSR[99][99]=0;
+betaCSR[99][100]=1;
+betaCSR[99][355]=2;
+betaCSR[100][100]=0;
+betaCSR[100][101]=1;
+betaCSR[100][356]=2;
+betaCSR[101][101]=0;
+betaCSR[101][102]=1;
+betaCSR[101][357]=2;
+betaCSR[102][102]=0;
+betaCSR[102][103]=1;
+betaCSR[102][358]=2;
+betaCSR[103][103]=0;
+betaCSR[103][104]=1;
+betaCSR[103][359]=2;
+betaCSR[104][104]=0;
+betaCSR[104][105]=1;
+betaCSR[104][360]=2;
+betaCSR[105][105]=0;
+betaCSR[105][106]=1;
+betaCSR[105][361]=2;
+betaCSR[106][106]=0;
+betaCSR[106][107]=1;
+betaCSR[106][362]=2;
+betaCSR[107][107]=0;
+betaCSR[107][108]=1;
+betaCSR[107][363]=2;
+betaCSR[108][108]=0;
+betaCSR[108][109]=1;
+betaCSR[108][364]=2;
+betaCSR[109][109]=0;
+betaCSR[109][110]=1;
+betaCSR[109][365]=2;
+betaCSR[110][110]=0;
+betaCSR[110][111]=1;
+betaCSR[110][366]=2;
+betaCSR[111][111]=0;
+betaCSR[111][112]=1;
+betaCSR[111][367]=2;
+betaCSR[112][112]=0;
+betaCSR[112][113]=1;
+betaCSR[112][368]=2;
+betaCSR[113][113]=0;
+betaCSR[113][114]=1;
+betaCSR[113][369]=2;
+betaCSR[114][114]=0;
+betaCSR[114][115]=1;
+betaCSR[114][370]=2;
+betaCSR[115][115]=0;
+betaCSR[115][116]=1;
+betaCSR[115][371]=2;
+betaCSR[116][116]=0;
+betaCSR[116][117]=1;
+betaCSR[116][372]=2;
+betaCSR[117][117]=0;
+betaCSR[117][118]=1;
+betaCSR[117][373]=2;
+betaCSR[118][118]=0;
+betaCSR[118][119]=1;
+betaCSR[118][374]=2;
+betaCSR[119][119]=0;
+betaCSR[119][120]=1;
+betaCSR[119][375]=2;
+betaCSR[120][120]=0;
+betaCSR[120][121]=1;
+betaCSR[120][376]=2;
+betaCSR[121][121]=0;
+betaCSR[121][122]=1;
+betaCSR[121][377]=2;
+betaCSR[122][122]=0;
+betaCSR[122][123]=1;
+betaCSR[122][378]=2;
+betaCSR[123][123]=0;
+betaCSR[123][124]=1;
+betaCSR[123][379]=2;
+betaCSR[124][124]=0;
+betaCSR[124][125]=1;
+betaCSR[124][380]=2;
+betaCSR[125][125]=0;
+betaCSR[125][126]=1;
+betaCSR[125][381]=2;
+betaCSR[126][126]=0;
+betaCSR[126][127]=1;
+betaCSR[126][382]=2;
+betaCSR[127][0]=0;
+betaCSR[127][127]=1;
+betaCSR[127][383]=2;
+betaCSR[128][128]=0;
+betaCSR[128][129]=1;
+betaCSR[128][334]=2;
+betaCSR[129][129]=0;
+betaCSR[129][130]=1;
+betaCSR[129][268]=2;
+betaCSR[130][130]=0;
+betaCSR[130][131]=1;
+betaCSR[130][359]=2;
+betaCSR[131][131]=0;
+betaCSR[131][132]=1;
+betaCSR[131][342]=2;
+betaCSR[132][132]=0;
+betaCSR[132][133]=1;
+betaCSR[132][257]=2;
+betaCSR[133][133]=0;
+betaCSR[133][134]=1;
+betaCSR[133][320]=2;
+betaCSR[134][134]=0;
+betaCSR[134][135]=1;
+betaCSR[134][297]=2;
+betaCSR[135][135]=0;
+betaCSR[135][136]=1;
+betaCSR[135][264]=2;
+betaCSR[136][136]=0;
+betaCSR[136][137]=1;
+betaCSR[136][326]=2;
+betaCSR[137][137]=0;
+betaCSR[137][138]=1;
+betaCSR[137][355]=2;
+betaCSR[138][138]=0;
+betaCSR[138][139]=1;
+betaCSR[138][289]=2;
+betaCSR[139][139]=0;
+betaCSR[139][140]=1;
+betaCSR[139][314]=2;
+betaCSR[140][140]=0;
+betaCSR[140][141]=1;
+betaCSR[140][336]=2;
+betaCSR[141][141]=0;
+betaCSR[141][142]=1;
+betaCSR[141][256]=2;
+betaCSR[142][142]=0;
+betaCSR[142][143]=1;
+betaCSR[142][277]=2;
+betaCSR[143][143]=0;
+betaCSR[143][144]=1;
+betaCSR[143][350]=2;
+betaCSR[144][144]=0;
+betaCSR[144][145]=1;
+betaCSR[144][307]=2;
+betaCSR[145][145]=0;
+betaCSR[145][146]=1;
+betaCSR[145][266]=2;
+betaCSR[146][146]=0;
+betaCSR[146][147]=1;
+betaCSR[146][363]=2;
+betaCSR[147][147]=0;
+betaCSR[147][148]=1;
+betaCSR[147][300]=2;
+betaCSR[148][148]=0;
+betaCSR[148][149]=1;
+betaCSR[148][259]=2;
+betaCSR[149][149]=0;
+betaCSR[149][150]=1;
+betaCSR[149][325]=2;
+betaCSR[150][150]=0;
+betaCSR[150][151]=1;
+betaCSR[150][293]=2;
+betaCSR[151][151]=0;
+betaCSR[151][152]=1;
+betaCSR[151][367]=2;
+betaCSR[152][152]=0;
+betaCSR[152][153]=1;
+betaCSR[152][269]=2;
+betaCSR[153][153]=0;
+betaCSR[153][154]=1;
+betaCSR[153][278]=2;
+betaCSR[154][154]=0;
+betaCSR[154][155]=1;
+betaCSR[154][339]=2;
+betaCSR[155][155]=0;
+betaCSR[155][156]=1;
+betaCSR[155][322]=2;
+betaCSR[156][156]=0;
+betaCSR[156][157]=1;
+betaCSR[156][261]=2;
+betaCSR[157][157]=0;
+betaCSR[157][158]=1;
+betaCSR[157][356]=2;
+betaCSR[158][158]=0;
+betaCSR[158][159]=1;
+betaCSR[158][305]=2;
+betaCSR[159][159]=0;
+betaCSR[159][160]=1;
+betaCSR[159][272]=2;
+betaCSR[160][160]=0;
+betaCSR[160][161]=1;
+betaCSR[160][371]=2;
+betaCSR[161][161]=0;
+betaCSR[161][162]=1;
+betaCSR[161][344]=2;
+betaCSR[162][162]=0;
+betaCSR[162][163]=1;
+betaCSR[162][315]=2;
+betaCSR[163][163]=0;
+betaCSR[163][164]=1;
+betaCSR[163][294]=2;
+betaCSR[164][164]=0;
+betaCSR[164][165]=1;
+betaCSR[164][351]=2;
+betaCSR[165][165]=0;
+betaCSR[165][166]=1;
+betaCSR[165][262]=2;
+betaCSR[166][166]=0;
+betaCSR[166][167]=1;
+betaCSR[166][378]=2;
+betaCSR[167][167]=0;
+betaCSR[167][168]=1;
+betaCSR[167][288]=2;
+betaCSR[168][168]=0;
+betaCSR[168][169]=1;
+betaCSR[168][330]=2;
+betaCSR[169][169]=0;
+betaCSR[169][170]=1;
+betaCSR[169][343]=2;
+betaCSR[170][170]=0;
+betaCSR[170][171]=1;
+betaCSR[170][279]=2;
+betaCSR[171][171]=0;
+betaCSR[171][172]=1;
+betaCSR[171][374]=2;
+betaCSR[172][172]=0;
+betaCSR[172][173]=1;
+betaCSR[172][265]=2;
+betaCSR[173][173]=0;
+betaCSR[173][174]=1;
+betaCSR[173][337]=2;
+betaCSR[174][174]=0;
+betaCSR[174][175]=1;
+betaCSR[174][285]=2;
+betaCSR[175][175]=0;
+betaCSR[175][176]=1;
+betaCSR[175][302]=2;
+betaCSR[176][176]=0;
+betaCSR[176][177]=1;
+betaCSR[176][353]=2;
+betaCSR[177][177]=0;
+betaCSR[177][178]=1;
+betaCSR[177][270]=2;
+betaCSR[178][178]=0;
+betaCSR[178][179]=1;
+betaCSR[178][319]=2;
+betaCSR[179][179]=0;
+betaCSR[179][180]=1;
+betaCSR[179][376]=2;
+betaCSR[180][180]=0;
+betaCSR[180][181]=1;
+betaCSR[180][345]=2;
+betaCSR[181][181]=0;
+betaCSR[181][182]=1;
+betaCSR[181][308]=2;
+betaCSR[182][182]=0;
+betaCSR[182][183]=1;
+betaCSR[182][338]=2;
+betaCSR[183][183]=0;
+betaCSR[183][184]=1;
+betaCSR[183][327]=2;
+betaCSR[184][184]=0;
+betaCSR[184][185]=1;
+betaCSR[184][273]=2;
+betaCSR[185][185]=0;
+betaCSR[185][186]=1;
+betaCSR[185][381]=2;
+betaCSR[186][186]=0;
+betaCSR[186][187]=1;
+betaCSR[186][299]=2;
+betaCSR[187][187]=0;
+betaCSR[187][188]=1;
+betaCSR[187][280]=2;
+betaCSR[188][188]=0;
+betaCSR[188][189]=1;
+betaCSR[188][357]=2;
+betaCSR[189][189]=0;
+betaCSR[189][190]=1;
+betaCSR[189][292]=2;
+betaCSR[190][190]=0;
+betaCSR[190][191]=1;
+betaCSR[190][311]=2;
+betaCSR[191][191]=0;
+betaCSR[191][192]=1;
+betaCSR[191][341]=2;
+betaCSR[192][192]=0;
+betaCSR[192][193]=1;
+betaCSR[192][349]=2;
+betaCSR[193][193]=0;
+betaCSR[193][194]=1;
+betaCSR[193][370]=2;
+betaCSR[194][194]=0;
+betaCSR[194][195]=1;
+betaCSR[194][321]=2;
+betaCSR[195][195]=0;
+betaCSR[195][196]=1;
+betaCSR[195][282]=2;
+betaCSR[196][196]=0;
+betaCSR[196][197]=1;
+betaCSR[196][335]=2;
+betaCSR[197][197]=0;
+betaCSR[197][198]=1;
+betaCSR[197][306]=2;
+betaCSR[198][198]=0;
+betaCSR[198][199]=1;
+betaCSR[198][295]=2;
+betaCSR[199][199]=0;
+betaCSR[199][200]=1;
+betaCSR[199][373]=2;
+betaCSR[200][200]=0;
+betaCSR[200][201]=1;
+betaCSR[200][287]=2;
+betaCSR[201][201]=0;
+betaCSR[201][202]=1;
+betaCSR[201][364]=2;
+betaCSR[202][202]=0;
+betaCSR[202][203]=1;
+betaCSR[202][340]=2;
+betaCSR[203][203]=0;
+betaCSR[203][204]=1;
+betaCSR[203][318]=2;
+betaCSR[204][204]=0;
+betaCSR[204][205]=1;
+betaCSR[204][382]=2;
+betaCSR[205][205]=0;
+betaCSR[205][206]=1;
+betaCSR[205][304]=2;
+betaCSR[206][206]=0;
+betaCSR[206][207]=1;
+betaCSR[206][360]=2;
+betaCSR[207][207]=0;
+betaCSR[207][208]=1;
+betaCSR[207][375]=2;
+betaCSR[208][208]=0;
+betaCSR[208][209]=1;
+betaCSR[208][313]=2;
+betaCSR[209][209]=0;
+betaCSR[209][210]=1;
+betaCSR[209][298]=2;
+betaCSR[210][210]=0;
+betaCSR[210][211]=1;
+betaCSR[210][368]=2;
+betaCSR[211][211]=0;
+betaCSR[211][212]=1;
+betaCSR[211][286]=2;
+betaCSR[212][212]=0;
+betaCSR[212][213]=1;
+betaCSR[212][323]=2;
+betaCSR[213][213]=0;
+betaCSR[213][214]=1;
+betaCSR[213][383]=2;
+betaCSR[214][214]=0;
+betaCSR[214][215]=1;
+betaCSR[214][309]=2;
+betaCSR[215][215]=0;
+betaCSR[215][216]=1;
+betaCSR[215][331]=2;
+betaCSR[216][216]=0;
+betaCSR[216][217]=1;
+betaCSR[216][348]=2;
+betaCSR[217][217]=0;
+betaCSR[217][218]=1;
+betaCSR[217][296]=2;
+betaCSR[218][218]=0;
+betaCSR[218][219]=1;
+betaCSR[218][377]=2;
+betaCSR[219][219]=0;
+betaCSR[219][220]=1;
+betaCSR[219][284]=2;
+betaCSR[220][220]=0;
+betaCSR[220][221]=1;
+betaCSR[220][358]=2;
+betaCSR[221][221]=0;
+betaCSR[221][222]=1;
+betaCSR[221][328]=2;
+betaCSR[222][222]=0;
+betaCSR[222][223]=1;
+betaCSR[222][372]=2;
+betaCSR[223][223]=0;
+betaCSR[223][224]=1;
+betaCSR[223][276]=2;
+betaCSR[224][224]=0;
+betaCSR[224][225]=1;
+betaCSR[224][301]=2;
+betaCSR[225][225]=0;
+betaCSR[225][226]=1;
+betaCSR[225][316]=2;
+betaCSR[226][226]=0;
+betaCSR[226][227]=1;
+betaCSR[226][332]=2;
+betaCSR[227][227]=0;
+betaCSR[227][228]=1;
+betaCSR[227][380]=2;
+betaCSR[228][228]=0;
+betaCSR[228][229]=1;
+betaCSR[228][291]=2;
+betaCSR[229][229]=0;
+betaCSR[229][230]=1;
+betaCSR[229][362]=2;
+betaCSR[230][230]=0;
+betaCSR[230][231]=1;
+betaCSR[230][283]=2;
+betaCSR[231][231]=0;
+betaCSR[231][232]=1;
+betaCSR[231][274]=2;
+betaCSR[232][232]=0;
+betaCSR[232][233]=1;
+betaCSR[232][346]=2;
+betaCSR[233][233]=0;
+betaCSR[233][234]=1;
+betaCSR[233][354]=2;
+betaCSR[234][234]=0;
+betaCSR[234][235]=1;
+betaCSR[234][333]=2;
+betaCSR[235][235]=0;
+betaCSR[235][236]=1;
+betaCSR[235][369]=2;
+betaCSR[236][236]=0;
+betaCSR[236][237]=1;
+betaCSR[236][263]=2;
+betaCSR[237][237]=0;
+betaCSR[237][238]=1;
+betaCSR[237][361]=2;
+betaCSR[238][238]=0;
+betaCSR[238][239]=1;
+betaCSR[238][271]=2;
+betaCSR[239][239]=0;
+betaCSR[239][240]=1;
+betaCSR[239][310]=2;
+betaCSR[240][240]=0;
+betaCSR[240][241]=1;
+betaCSR[240][379]=2;
+betaCSR[241][241]=0;
+betaCSR[241][242]=1;
+betaCSR[241][366]=2;
+betaCSR[242][242]=0;
+betaCSR[242][243]=1;
+betaCSR[242][281]=2;
+betaCSR[243][243]=0;
+betaCSR[243][244]=1;
+betaCSR[243][260]=2;
+betaCSR[244][244]=0;
+betaCSR[244][245]=1;
+betaCSR[244][317]=2;
+betaCSR[245][245]=0;
+betaCSR[245][246]=1;
+betaCSR[245][347]=2;
+betaCSR[246][246]=0;
+betaCSR[246][247]=1;
+betaCSR[246][267]=2;
+betaCSR[247][247]=0;
+betaCSR[247][248]=1;
+betaCSR[247][290]=2;
+betaCSR[248][248]=0;
+betaCSR[248][249]=1;
+betaCSR[248][303]=2;
+betaCSR[249][249]=0;
+betaCSR[249][250]=1;
+betaCSR[249][365]=2;
+betaCSR[250][250]=0;
+betaCSR[250][251]=1;
+betaCSR[250][329]=2;
+betaCSR[251][251]=0;
+betaCSR[251][252]=1;
+betaCSR[251][258]=2;
+betaCSR[252][252]=0;
+betaCSR[252][253]=1;
+betaCSR[252][352]=2;
+betaCSR[253][253]=0;
+betaCSR[253][254]=1;
+betaCSR[253][312]=2;
+betaCSR[254][254]=0;
+betaCSR[254][255]=1;
+betaCSR[254][275]=2;
+betaCSR[255][128]=0;
+betaCSR[255][255]=1;
+betaCSR[255][324]=2;
+
 
 
 
 end
 
 end
+
+
 endmodule
