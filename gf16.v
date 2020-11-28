@@ -212,7 +212,7 @@ counter_block counter19(reset,clk,enable15,compcount);
 `define ADD_CHECK 6'D29
 `define processingstate7 6'd30
 `define alphapost 6'd31
-`define wait 6'd33
+`define wait0 6'd33
 `define wait1 6'd34
 `define subtractor 6'd37
 `define comparator 6'd35
@@ -1024,9 +1024,9 @@ case(state)
 `processing_state4: begin  next_state=`BETA_ASSIGN; end
 `BETA_ASSIGN: begin if(beta_count[3:0]==4'd15) next_state=`BETA_ASSIGN1; else begin next_state=`BETA_ASSIGN; end  end
 `BETA_ASSIGN1: begin if(beta_count1[3:0]==4'd15) next_state=`processingstate7; else begin next_state=`BETA_ASSIGN1; end  end
-`processingstate7: begin next_state=`wait; end
+`processingstate7: begin next_state=`wait0; end
 `alphapost: begin if(sumcount[3:0]==4'd15)next_state=`comparator; else next_state = `processingstate7; end
-`wait:begin next_state=`wait1; end
+`wait0:begin next_state=`wait1; end
 `wait1:begin next_state=`alphapost; end
 
 `comparator: begin if(compcount[3:0]==4'd15)next_state=`comparator1; else next_state = `comparator; end
@@ -128527,7 +128527,7 @@ end
 end
 
 
-`wait : begin
+`wait0 : begin
 end
 
 `wait1   :begin
